@@ -4,6 +4,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 router.use(express.json());
+module.exports = router; // Export the router
+
+
 const securitykey ="ZohaibMughal";
 
 const emailValidator = {
@@ -55,7 +58,6 @@ const erpValidator ={
     
 }
 
-  const User = mongoose.model('User', userSchema);
 
   // Define a User model
   const userSchema = new mongoose.Schema({
@@ -98,6 +100,7 @@ const erpValidator ={
 
 
   });
+  const User = mongoose.model('User', userSchema);
 
 
 
@@ -108,6 +111,9 @@ const erpValidator ={
       // Check if the email is already in use
       let user = await User.findOne({ email });
       if (user) return res.json({ msg: "This email is already in use" });
+      
+      let user1 = await User.findOne({ erp });
+      if (user1) return res.json({ msg: "This ERP is already in use" });
       
       // Check if the password is valid
       if (passwordValidator.validator(password)) {

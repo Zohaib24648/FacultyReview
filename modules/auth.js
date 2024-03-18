@@ -126,6 +126,11 @@ const erpValidator ={
         return res.status(500).json({ msg: error.message });
       }
     });
+
+
+
+
+    
     router.post("/login", async (req, res) => {
       try {
         const { loginUsername, password } = req.body;
@@ -167,6 +172,45 @@ const erpValidator ={
     });
   
 
-
-
-  
+    router.post('/logout', async (req, res) => {
+      try {
+        // Invalidate token by removing it from the client-side storage
+        res.clearCookie('token');
+        // Optionally, set a very short expiry for the cookie to ensure it gets deleted
+        res.status(200).json({ msg: 'Logged out successfully' });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: 'Internal server error' });
+      }
+    });
+    
+    router.patch('/changepassword', async (req, res) => {
+      try {
+        const { erp, oldpassword, newpassword } = req.body;
+        if(oldpassword==newpassword){
+          return res.status(400).json({ msg: "New Password cannot be same as old password" });
+        }
+        // Attempt to find the user by ERP
+        const user = await User.findOne({ erp });
+        if (!user) {
+          return res.status(404).json({ msg: "User not found" });
+        }
+    
+        // Check that the old password matches
+        const passwordCheck = await bcrypt.compare(oldpassword, user.password);
+        if (!passwordCheck) {
+          return res.status(401).json({ msg: "Incorrect Password" }); // Unauthorized for wrong credentials
+        }
+    
+        // Hash the new password before saving
+        const hashedNewPassword = await bcrypt.hash(newpassword, 10); // Assuming a salt round of 10, adjust as needed
+        user.password = hashedNewPassword;
+        await user.save();
+    
+        res.status(200).json({ msg: "Password Changed Successfully" });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: "Internal server error" });
+      }
+    });
+    

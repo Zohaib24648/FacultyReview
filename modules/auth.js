@@ -6,6 +6,7 @@ const e = require('express');
 const router = express.Router();
 router.use(express.json());
 module.exports = router; // Export the router
+const Schema = mongoose.Schema;
 
 
 const securitykey ="ZohaibMughal";
@@ -91,6 +92,46 @@ const erpValidator ={
 
   });
   const User = mongoose.model('User', userSchema);
+
+
+
+      // comment_id: {
+    //   type: Number,
+    //   required:true,
+    //   unique:true,
+    //   },
+
+    const commentSchema = new mongoose.Schema({
+      erp: {
+          type: Number,
+          required: true,
+          erpValidator
+      },
+      comment: {
+          type: String,
+          required: true,
+          validate: emptyValidator
+      },
+      rating: {
+          type: Array,
+          required: true,
+          validate: emptyValidator
+      },
+      anonymous: {
+          type: Boolean,
+          required: true
+      },
+      teacher_id: {
+          type: Number,
+          required: true
+      },
+      course_id: {
+          type: Number,
+          required: true
+      }
+  });
+  
+  const Comments = mongoose.model('Comments', commentSchema);
 
 
 
@@ -213,4 +254,35 @@ const erpValidator ={
         res.status(500).json({ msg: "Internal server error" });
       }
     });
-    
+
+
+
+    router.post('/postcomment', async (req, res) => {
+      try {
+          const { teacher_id, comment, rating, course_id, anonymous, erp } = req.body;
+          const newComment = await Comments.create({ teacher_id, comment, rating, course_id, anonymous, erp });
+          
+          // Access the _id from the newly created comment
+          const objectId = newComment._id;
+  
+          res.json({ msg: "Comment Posted Successfully", objectId });
+  
+          // Print the ObjectId
+          console.log("New comment created with ObjectId:", objectId);
+      } catch(error) {
+          console.error(error);
+          res.status(500).json({ msg: "Internal server error" });
+      }
+  });
+  
+
+  router.post('/getcomment', async (req, res) => {
+    try {
+        const { teacher_id, course_id } = req.body;
+        const comments = await Comments.find({ teacher_id, course_id });
+        res.json(comments);
+    } catch(error) {
+        console.error(error);
+        res.status(500).json({ msg: "Internal server error" });
+    }
+} );

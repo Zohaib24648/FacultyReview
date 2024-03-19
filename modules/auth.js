@@ -2,7 +2,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const mongoose = require('mongoose');
-const e = require('express');
 const router = express.Router();
 router.use(express.json());
 module.exports = router; // Export the router
@@ -49,6 +48,20 @@ const erpValidator ={
     
 }
 
+const teacherSchema = new mongoose.Schema({
+  "Name": String,
+  "Title": String,
+  "Email": String,
+  "Overview": String,
+  "Courses Taught": String,
+  "Department": String,
+  "Specialization": String,
+  "Onboard Status": String,
+  "ImageFile": String
+});
+
+// Create a model for your collection
+const Teachers = mongoose.model('Teachers', teacherSchema);
 
   // Define a User model
   const userSchema = new mongoose.Schema({
@@ -107,7 +120,7 @@ const erpValidator ={
           required: true,
           erpValidator
       },
-      
+
       parent_id:{
         type:Number,
         default :null
@@ -140,6 +153,7 @@ const erpValidator ={
   const Comments = mongoose.model('Comments', commentSchema);
 
 
+  const teachers = mongoose.model('Teachers');
 
   router.post("/register", async (req, res) => {
     try {
@@ -332,3 +346,41 @@ router.delete('/deletecomment', async (req, res) => {
   }
 }
 );
+
+
+router.post('/getuserprofile',async(req,res)=>{
+  try{
+    const { erp } = req.body;
+    const user = await User.findOne({ erp },{ password: 0 });
+    if(!user){
+      return res.status(404).json({msg:"User not found"});
+    }
+    res.json(user);
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ msg: "Internal server error" });
+  }
+});
+
+router.get('/getteachers', async (req, res) => {
+  try {
+    const teachers = await Teachers.find({});
+    res.status(200).json(teachers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error", error: error.message });
+  }
+});
+
+
+
+router.post('/createTeacher', async (req, res) => {
+  try {
+    const { Name, Title, Email, Overview, CoursesTaught, Department, Specialization, OnboardStatus, ImageFile } = req.body;
+    const newTeacher = await Teachers.create({ Name, Title, Email, Overview, CoursesTaught, Department, Specialization, OnboardStatus, ImageFile });
+    res.json({ msg: "Teacher created successfully", teacher: newTeacher });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error" });
+  }
+});

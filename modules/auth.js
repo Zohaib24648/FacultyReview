@@ -107,6 +107,12 @@ const erpValidator ={
           required: true,
           erpValidator
       },
+      
+      parent_id:{
+        type:Number,
+        default :null
+      },
+
       comment: {
           type: String,
           required: true,
@@ -310,3 +316,19 @@ router.post('/getcommentcourse', async (req, res) => {
       res.status(500).json({ msg: "Internal server error" });
   }
 } );
+
+
+router.delete('/deletecomment', async (req, res) => {
+  try {
+      const { objectId } = req.body;
+      const deletedComment = await Comments.findByIdAndDelete(objectId);
+      if (!deletedComment) {
+          return res.status(404).json({ msg: "Comment not found" });
+      }
+      res.json({msg:"Deleted Successfully"});
+  } catch(error) {
+      console.error(error);
+      res.status(500).json({ msg: "Internal server error" });
+  }
+}
+);

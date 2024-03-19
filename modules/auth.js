@@ -276,7 +276,7 @@ const erpValidator ={
   });
   
 
-  router.post('/getcomment', async (req, res) => {
+  router.post('/getcommentteacherandcourse', async (req, res) => {
     try {
         const { teacher_id, course_id } = req.body;
         const comments = await Comments.find({ teacher_id, course_id });
@@ -285,4 +285,28 @@ const erpValidator ={
         console.error(error);
         res.status(500).json({ msg: "Internal server error" });
     }
+} );
+
+
+router.post('/getcommentteacher', async (req, res) => {
+  try {
+      const { teacher_id } = req.body;
+      const comments = await Comments.find({ teacher_id});
+      res.json(comments);
+  } catch(error) {
+      console.error(error);
+      res.status(500).json({ msg: "Internal server error" });
+  }
+} );
+
+
+router.post('/getcommentcourse', async (req, res) => {
+  try {
+      const { course_id } = req.body;
+      const comments = await Comments.find({  course_id });
+      res.json(comments);
+  } catch(error) {
+      console.error(error);
+      res.status(500).json({ msg: "Internal server error" });
+  }
 } );

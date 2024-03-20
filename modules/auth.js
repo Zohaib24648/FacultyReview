@@ -296,6 +296,26 @@ const Teachers = mongoose.model('Teachers', teacherSchema);
   });
   
 
+
+
+    router.post('/postreply', async (req, res) => {
+      try {
+          const { teacher_id, comment, rating, course_id, anonymous, erp, parent_id } = req.body;
+          const newComment = await Comments.create({ teacher_id, comment, rating, course_id, anonymous, erp, parent_id });
+          
+          // Access the _id from the newly created comment
+          const objectId = newComment._id;
+  
+          res.json({ msg: "Comment Posted Successfully", objectId });
+  
+          // Print the ObjectId
+          console.log("New comment created with ObjectId:", objectId);
+      } catch(error) {
+          console.error(error);
+          res.status(500).json({ msg: "Internal server error" });
+      }
+  });
+  
   router.post('/getcommentteacherandcourse', async (req, res) => {
     try {
         const { teacher_id, course_id } = req.body;
@@ -365,6 +385,30 @@ router.post('/getuserprofile',async(req,res)=>{
 router.get('/getteachers', async (req, res) => {
   try {
     const teachers = await Teachers.find({});
+    res.status(200).json(teachers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error", error: error.message });
+  }
+});
+
+// For courses Define a schema in the databse 
+router.get('/getteachers', async (req, res) => {
+  try {
+    const teachers = await Teachers.find({});
+    res.status(200).json(teachers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error", error: error.message });
+  }
+});
+
+
+
+router.get('/getteachercourse', async (req, res) => {
+  try {
+    const {course_id}= req.body;
+    const teachers = await Teachers.find({course_id});
     res.status(200).json(teachers);
   } catch (error) {
     console.error(error);

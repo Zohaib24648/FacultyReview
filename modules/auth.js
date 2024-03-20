@@ -53,7 +53,7 @@ const teacherSchema = new mongoose.Schema({
   "Title": String,
   "Email": String,
   "Overview": String,
-  "Courses Taught": String,
+  "Courses Taught": Array,
   "Department": String,
   "Specialization": String,
   "Onboard Status": String,

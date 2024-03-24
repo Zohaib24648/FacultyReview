@@ -196,7 +196,7 @@ const Courses = mongoose.model('Courses', courseSchema);
       default: ["User"] 
     },
 
-    saved_reviews : {type:Array,
+    saved_comments : {type:Array,
     default:[]},
 
     saved_teachers : {type:Array,
@@ -922,3 +922,117 @@ router.delete('/deleteteacher', authenticateToken,requireRole("Moderator"), asyn
     res.status(500).json({ msg: "Internal server error" });
   }
 });
+
+
+
+router.post('/saveComment',authenticateToken, async (req, res) => {
+  const { commentId } = req.body;
+  const erp = req.user.erp;
+
+  console.log('Saving comment:', commentId, 'for user:', erp);
+  // Validate the input
+  if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).send('Invalid or missing comment ID.');
+  }
+  if (!erp) {
+      return res.status(400).send('Missing user ERP.');
+  }
+
+  try {
+      // Find the user by ERP and update
+      const user = await User.findOneAndUpdate(
+          { erp: erp },
+          { $addToSet: { saved_comments: commentId } }, // $addToSet prevents duplicate ids
+          { new: true } // Return the updated document
+      );
+
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
+
+      res.status(200).json(user);
+  } catch (error) {
+      // Handle specific error codes
+      if (error.name === 'CastError') {
+          res.status(400).send('Invalid data format.');
+      } else if (error.name === 'ValidationError') {
+          let messages = Object.values(error.errors).map(val => val.message);
+          res.status(400).send(messages.join(', '));
+      } else {
+          console.error('Error saving comment:', error); // It's helpful to log the error for debugging.
+          res.status(500).send('Server error');
+      }
+  }
+});
+
+
+
+router.post('/removefromsavedcomments', authenticateToken, async (req, res) => {
+  const { commentId } = req.body;
+  const erp = req.user.erp; // Adjust if ERP is located differently in your user object
+
+  // Log the operation for debugging
+  console.log('Removing comment:', commentId, 'for user:', erp);
+
+  // Validate the input
+  if (!commentId || !mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.status(400).send('Invalid or missing comment ID.');
+  }
+  if (!erp) {
+      return res.status(400).send('Missing user ERP.');
+  }
+
+  try {
+      // Find the user by ERP and update by pulling the commentId from saved_comments
+      const user = await User.findOneAndUpdate(
+          { erp: erp },
+          { $pull: { saved_comments: commentId } }, // $pull removes the id from the array
+          { new: true } // Return the updated document
+      );
+
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
+
+      res.status(200).json(user);
+  } catch (error) {
+      // Handle specific error codes
+      if (error.name === 'CastError') {
+          res.status(400).send('Invalid data format.');
+      } else if (error.name === 'ValidationError') {
+          let messages = Object.values(error.errors).map(val => val.message);
+          res.status(400).send(messages.join(', '));
+      } else {
+          console.error('Error removing comment:', error); // Logging the error
+          res.status(500).send('Server error');
+      }
+  }
+});
+
+
+
+router.get('/getSavedComments', authenticateToken, async (req, res) => {
+  const erp = req.user.erp; // Assuming req.user.erp is populated by your authentication middleware
+
+  try {
+      // First, find the user to get their saved_comments
+      const user = await User.findOne({ erp: erp });
+      if (!user) {
+          return res.status(404).send('User not found.');
+      }
+
+      // Extract the saved comment IDs from the user document and convert them to ObjectId instances
+      const savedCommentIds = user.saved_comments.map(id => new mongoose.Types.ObjectId(id));
+
+      // Now, fetch the actual comment data for these IDs from the comments collection
+      const comments = await Comments.find({ '_id': { $in: savedCommentIds } });
+
+      // Return the comments to the client
+      res.status(200).json(comments);
+  } catch (error) {
+      console.error('Error fetching saved comments:', error); // Logging the error
+      res.status(500).send('Server error');
+  }
+});
+
+

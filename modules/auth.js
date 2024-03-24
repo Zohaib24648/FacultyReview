@@ -890,3 +890,35 @@ router.patch('/updateTeacher', authenticateToken, requireRole("Moderator"), asyn
     res.status(500).json({ msg: "Internal server error" });
   }
 });
+
+
+router.delete('/deleteteacher', authenticateToken,requireRole("Moderator"), async (req, res) => {
+  try {
+    const { objectId } = req.body;
+    const teacherToDelete = await Teachers.findById(objectId);
+
+    if (!teacherToDelete) {
+      return res.status(404).json({ msg: "teacher not found" });
+    }
+
+    // Check if the user is an Admin/Moderator or if the ERP matches
+    const hasPermission = req.user.roles.includes('Admin') || 
+                          req.user.roles.includes('Moderator')
+
+
+    if (!hasPermission) {
+      return res.status(403).json({ msg: "Not authorized to delete this teacher" });
+    }
+
+    // Perform a soft delete by setting isDeleted to true
+    teacherToDelete.isDeleted = true;
+    teacherToDelete.modifiedAt = new Date(); // Optionally update the modified date
+    teacherToDelete.modifiedBy = req.user.email; // Optionally update the modifier's email
+    await teacherToDelete.save();
+
+    res.json({ msg: "teacher deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error" });
+  }
+});

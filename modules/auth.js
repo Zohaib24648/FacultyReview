@@ -111,16 +111,26 @@ const erpValidator ={
 }
 
 const teacherSchema = new mongoose.Schema({
-  "Name": String,
-  "Title": String,
-  "Email": String,
-  "Overview": String,
-  "Courses Taught": Array,
-  "Department": String,
-  "Specialization": String,
-  "Onboard Status": String,
-  "ImageFile": String
+  Name: String,
+  Title: String,
+  Email: String,
+  Overview: String,
+  CoursesTaught: [String],
+  CoursesTaughtIDs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course'
+  }],
+  Department: String,
+  Specialization: String,
+  OnboardStatus: String,
+  ImageFile: String,
+  createdBy: String,
+  modifiedBy: String,
+  createdAt: Date,
+  modifiedAt: Date,
+  isDeleted: { type: Boolean, default: false }
 });
+
 
 // Create a model for your collection
 const Teachers = mongoose.model('Teachers', teacherSchema);
@@ -749,7 +759,6 @@ router.post('/getteachersforcourse', authenticateToken, requireRole("User"), asy
   }
 });
 
-
 router.post('/getcoursesforteacher', authenticateToken, requireRole("User"), async (req, res) => {
   try {
     const { teacher_id } = req.body; // Assuming you're passing the teacher's ObjectId in the request
@@ -758,9 +767,17 @@ router.post('/getcoursesforteacher', authenticateToken, requireRole("User"), asy
       return res.status(400).json({ msg: "Teacher ID is required." });
     }
 
-    // Assuming each course document in the Courses collection has a field named 'Teachers' 
-    // that is an array of ObjectIds referring to teachers
-    const courses = await Courses.find({ "Teachers": teacher_id });
+    // Find the teacher by their ID to get the list of Course ObjectIds
+    const teacher = await Teachers.findById(teacher_id);
+
+    if (!teacher) {
+      return res.status(404).json({ msg: "Teacher not found." });
+    }
+
+    // Use the CoursesTaughtIDs to find all corresponding courses
+    const courses = await Courses.find({
+      '_id': { $in: teacher.CoursesTaughtIDs }
+    });
 
     if (!courses.length) {
       return res.status(404).json({ msg: "No courses found for this teacher." });
@@ -785,12 +802,89 @@ router.get('/getallcourses', authenticateToken, requireRole("User"), async (req,
 });
 
 
-
-router.post('/createTeacher',authenticateToken,requireRole("Moderator"), async (req, res) => {
+router.post('/createTeacher', authenticateToken, requireRole("Moderator"), async (req, res) => {
   try {
     const { Name, Title, Email, Overview, CoursesTaught, Department, Specialization, OnboardStatus, ImageFile } = req.body;
-    const newTeacher = await Teachers.create({ Name, Title, Email, Overview, CoursesTaught, Department, Specialization, OnboardStatus, ImageFile });
+    
+    // For demonstration, using a static email. In a real app, derive this from the authenticated user.
+    const user = "zohaibalimughal7@gmail.com";
+
+    // Convert course names to ObjectIds
+    const courses = await Courses.find({ 'Course_name': { $in: CoursesTaught } });
+    const CoursesTaughtIDs = courses.map(course => course._id);
+
+    // Check if all provided course names were found as valid courses
+    if (CoursesTaught.length !== CoursesTaughtIDs.length) {
+      return res.status(400).json({ msg: "One or more courses not found." });
+    }
+
+    const newTeacher = await Teachers.create({
+      Name,
+      Title,
+      Email,
+      Overview,
+      CoursesTaught,
+      CoursesTaughtIDs, // Include the array of course ObjectIds
+      Department,
+      Specialization,
+      OnboardStatus,
+      ImageFile,
+      createdBy: user,
+      modifiedBy: user,
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      isDeleted: false // Explicitly set, though default value is false as per schema
+    });
+
     res.json({ msg: "Teacher created successfully", teacher: newTeacher });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error" });
+  }
+});
+
+
+router.patch('/updateTeacher', authenticateToken, requireRole("Moderator"), async (req, res) => {
+  try {
+    const { id, Name, Title, Email, Overview, CoursesTaught, Department, Specialization, OnboardStatus, ImageFile } = req.body;
+
+    // For demonstration, using a static email. In a real app, derive this from the authenticated user.
+    const user = "zohaibalimughal7@gmail.com";
+
+    let updateData = {
+      ...(Name && {Name}),
+      ...(Title && {Title}),
+      ...(Email && {Email}),
+      ...(Overview && {Overview}),
+      ...(Department && {Department}),
+      ...(Specialization && {Specialization}),
+      ...(OnboardStatus && {OnboardStatus}),
+      ...(ImageFile && {ImageFile}),
+      modifiedBy: user,
+      modifiedAt: new Date(),
+    };
+
+    // If CoursesTaught is provided, convert course names to ObjectIds
+    if (CoursesTaught && CoursesTaught.length > 0) {
+      const courses = await Courses.find({ 'Course_name': { $in: CoursesTaught } });
+      const CoursesTaughtIDs = courses.map(course => course._id);
+
+      // Check if all provided course names were found as valid courses
+      if (CoursesTaught.length !== CoursesTaughtIDs.length) {
+        return res.status(400).json({ msg: "One or more courses not found." });
+      }
+
+      updateData.CoursesTaught = CoursesTaught;
+      updateData.CoursesTaughtIDs = CoursesTaughtIDs;
+    }
+
+    const updatedTeacher = await Teachers.findByIdAndUpdate(id, updateData, { new: true });
+
+    if (!updatedTeacher) {
+      return res.status(404).json({ msg: "Teacher not found." });
+    }
+
+    res.json({ msg: "Teacher updated successfully", teacher: updatedTeacher });
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Internal server error" });

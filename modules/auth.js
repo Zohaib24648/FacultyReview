@@ -270,6 +270,8 @@ const Courses = mongoose.model('Courses', courseSchema);
           type: Number,
           default: 0
       },
+      upvotedBy: [{ type: Number }],
+      downvotedBy: [{ type: Number }],
 
       downvotes: {
           type: Number,
@@ -1036,3 +1038,160 @@ router.get('/getSavedComments', authenticateToken, async (req, res) => {
 });
 
 
+// Route to upvote a comment
+router.post('/upvotecomment', authenticateToken, async (req, res) => {
+  const { commentId } = req.body;
+  const userErp = req.user.erp; // Assuming you have middleware that sets req.user
+
+  if (!commentId) {
+      return res.status(400).send('Missing comment ID.');
+  }
+
+  try {
+      // Find the comment to check if the user has already upvoted it
+      const comment = await Comments.findById(commentId);
+
+      if (!comment) {
+          return res.status(404).send('Comment not found.');
+      }
+
+      // Check if the user's ERP is in the upvotedBy array
+      if (comment.upvotedBy.includes(userErp)) {
+          // User has already upvoted this comment
+          return res.status(400).send('You have already upvoted this comment.');
+      }
+
+      // User has not upvoted yet, proceed to upvote
+      const updatedComment = await Comments.findByIdAndUpdate(
+          commentId,
+          { 
+              $inc: { upvotes: 1 }, // Increment upvotes by 1
+              $push: { upvotedBy: userErp } // Add user's ERP to upvotedBy
+          },
+          { new: true, runValidators: true }
+      );
+
+      res.status(200).json(updatedComment);
+  } catch (error) {
+      console.error('Error upvoting comment:', error);
+      res.status(500).send('Server error');
+  }
+});
+
+
+
+router.post('/downvotecomment', authenticateToken, async (req, res) => {
+  const { commentId } = req.body;
+  const userErp = req.user.erp; // Assuming you have middleware that sets req.user
+
+  if (!commentId) {
+      return res.status(400).send('Missing comment ID.');
+  }
+
+  try {
+      // Find the comment to check if the user has already downvoted it
+      const comment = await Comments.findById(commentId);
+
+      if (!comment) {
+          return res.status(404).send('Comment not found.');
+      }
+
+      // Check if the user's ERP is in the downvotedBy array
+      if (comment.downvotedBy.includes(userErp)) {
+          // User has already downvoted this comment
+          return res.status(400).send('You have already downvoted this comment.');
+      }
+
+      // User has not downvoted yet, proceed to downvote
+      const updatedComment = await Comments.findByIdAndUpdate(
+          commentId,
+          { 
+              $inc: { downvotes: 1 }, // Increment downvotes by 1
+              $push: { downvotedBy: userErp } // Add user's ERP to downvotedBy
+          },
+          { new: true, runValidators: true }
+      );
+
+      res.status(200).json(updatedComment);
+  } catch (error) {
+      console.error('Error downvoting comment:', error);
+      res.status(500).send('Server error');
+  }
+});
+
+
+
+router.post('/saveteacher', authenticateToken, async (req, res) => {
+  const { teacherId } = req.body;
+  const erp = req.user.erp;
+
+  if (!teacherId) {
+      return res.status(400).send('Invalid or missing teacher ID.');
+  }
+
+  try {
+      const user = await User.findOneAndUpdate(
+          { erp: erp },
+          { $addToSet: { saved_teachers: teacherId } },
+          { new: true }
+      );
+
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
+
+      res.status(200).json(user);
+  } catch (error) {
+      console.error('Error saving teacher:', error);
+      res.status(500).send('Server error');
+  }
+});
+
+
+router.post('/removesavedteacher', authenticateToken, async (req, res) => {
+  const { teacherId } = req.body;
+  const erp = req.user.erp;
+
+  if (!teacherId) {
+      return res.status(400).send('Invalid or missing teacher ID.');
+  }
+
+  try {
+      const user = await User.findOneAndUpdate(
+          { erp: erp },
+          { $pull: { saved_teachers: teacherId } },
+          { new: true }
+      );
+
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
+
+      res.status(200).json(user);
+  } catch (error) {
+      console.error('Error removing saved teacher:', error);
+      res.status(500).send('Server error');
+  }
+});
+
+
+router.get('/getSavedTeachers', authenticateToken, async (req, res) => {
+  const erp = req.user.erp;
+
+  try {
+      const user = await User.findOne({ erp: erp });
+      if (!user || !user.saved_teachers.length) {
+          return res.status(404).send('No saved teachers found.');
+      }
+
+      // Assuming you have a Teacher model set up
+      const savedTeachers = await Teachers.find({
+          '_id': { $in: user.saved_teachers }
+      });
+
+      res.status(200).json(savedTeachers);
+  } catch (error) {
+      console.error('Error fetching saved teachers:', error);
+      res.status(500).send('Server error');
+  }
+});

@@ -1195,3 +1195,75 @@ router.get('/getSavedTeachers', authenticateToken, async (req, res) => {
       res.status(500).send('Server error');
   }
 });
+
+
+router.post('/savecourse', authenticateToken, async (req, res) => {
+  const { courseId } = req.body;
+  const erp = req.user.erp;
+
+  if (!courseId) {
+    return res.status(400).send('Missing course ID.');
+  }
+
+  try {
+    const user = await User.findOneAndUpdate(
+      { erp: erp },
+      { $addToSet: { saved_courses: courseId } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error saving course:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+router.post('/removesavedcourse', authenticateToken, async (req, res) => {
+  const { courseId } = req.body;
+  const erp = req.user.erp;
+
+  if (!courseId) {
+    return res.status(400).send('Missing course ID.');
+  }
+
+  try {
+    const user = await User.findOneAndUpdate(
+      { erp: erp },
+      { $pull: { saved_courses: courseId } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error removing course:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+
+router.get('/getsavedcourses', authenticateToken, async (req, res) => {
+  const erp = req.user.erp;
+
+  try {
+    const user = await User.findOne({ erp: erp });
+    if (!user || !user.saved_courses.length) {
+      return res.status(404).send('No saved courses found.');
+    }
+
+    const savedCourses = await Courses.find({ '_id': { $in: user.saved_courses } });
+
+    res.status(200).json(savedCourses);
+  } catch (error) {
+    console.error('Error fetching saved courses:', error);
+    res.status(500).send('Server error');
+  }
+});

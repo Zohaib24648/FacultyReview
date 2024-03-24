@@ -6,6 +6,7 @@ const router = express.Router();
 router.use(express.json());
 module.exports = router; // Export the router
 const securitykey ="ZohaibMughal";
+const Schema = mongoose.Schema;
 
 
 
@@ -124,6 +125,25 @@ const teacherSchema = new mongoose.Schema({
 // Create a model for your collection
 const Teachers = mongoose.model('Teachers', teacherSchema);
 
+
+
+
+const courseSchema = new Schema({
+  Course_name: {
+    type: String,
+    required: true
+  },
+  "Course Description": {
+    type: String,
+    required: true
+  },
+  Teachers: [{
+    type: Schema.Types.ObjectId, // Corrected reference to ObjectId
+    ref: 'Teacher' // Ensure 'Teacher' matches the name of your teacher model
+  }]
+});
+
+const Courses = mongoose.model('Courses', courseSchema);
   // Define a User model
   const userSchema = new mongoose.Schema({
     email: {
@@ -692,23 +712,36 @@ router.get('/getallteachers',authenticateToken,requireRole("User"), async (req, 
 
 
 
-// // For courses Define a schema in the databse 
-// router.get('/getteachers',authenticateToken,requireRole("User"), async (req, res) => {
-//   try {
-//     const teachers = await Teachers.find({});
-//     res.status(200).json(teachers);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ msg: "Internal server error", error: error.message });
-//   }
-// });
 
 
 
-router.post('/getteachersforcourse',authenticateToken,requireRole("User"), async (req, res) => {
+router.post('/getteachersforcourse', authenticateToken, requireRole("User"), async (req, res) => {
   try {
-    const {course_id}= req.body;
-    const teachers = await Teachers.find({course_id});
+    const { course_id } = req.body;
+
+    if (!course_id) {
+      return res.status(400).json({ msg: "Course ID is required." });
+    }
+
+    // First, find the course by its ID to get the list of teacher IDs
+    const course = await Courses.findById(course_id);
+
+    if (!course) {
+      return res.status(404).json({ msg: "Course not found." });
+    }
+
+    // Extract teacher Object IDs from the course document
+    const teacherIds = course.Teachers;
+
+    // Then, find all teachers whose IDs are in the course's Teachers array
+    const teachers = await Teachers.find({
+      '_id': { $in: teacherIds }
+    });
+
+    if (teachers.length === 0) {
+      return res.status(404).json({ msg: "No teachers found for this course." });
+    }
+
     res.status(200).json(teachers);
   } catch (error) {
     console.error(error);
@@ -717,17 +750,39 @@ router.post('/getteachersforcourse',authenticateToken,requireRole("User"), async
 });
 
 
-router.post('/getcoursesforteacher',authenticateToken,requireRole("User"), async (req, res) => {
+router.post('/getcoursesforteacher', authenticateToken, requireRole("User"), async (req, res) => {
   try {
-    const {course_id}= req.body;
-    const teachers = await Teachers.find({course_id});
-    res.status(200).json(teachers);
+    const { teacher_id } = req.body; // Assuming you're passing the teacher's ObjectId in the request
+    
+    if (!teacher_id) {
+      return res.status(400).json({ msg: "Teacher ID is required." });
+    }
+
+    // Assuming each course document in the Courses collection has a field named 'Teachers' 
+    // that is an array of ObjectIds referring to teachers
+    const courses = await Courses.find({ "Teachers": teacher_id });
+
+    if (!courses.length) {
+      return res.status(404).json({ msg: "No courses found for this teacher." });
+    }
+
+    res.status(200).json(courses);
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: "Internal server error", error: error.message });
   }
 });
 
+
+router.get('/getallcourses', authenticateToken, requireRole("User"), async (req, res) => {
+  try {
+    const courses = await Courses.find({}); // Finds all courses
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error", error: error.message });
+  }
+});
 
 
 

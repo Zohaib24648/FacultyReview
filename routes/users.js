@@ -15,8 +15,11 @@ const Users = require('../models/User');
 
 router.post("/register", async (req, res) => {
     try {
-      const { email, password, firstname, lastname, erp } = req.body;
-      
+      var { email, password, firstname, lastname, erp } = req.body;
+      if(Validator.emailValidator.validator(email) == false || Validator.erpValidator.validator(erp) == false){
+        return res.status(400).json({ msg: "Please Enter a Valid Email Address or ERP" });
+      }
+      email = email.toLowerCase();
       // Check if the email or ERP is already in use
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
@@ -63,14 +66,19 @@ router.post("/register", async (req, res) => {
   
   router.post("/login", async (req, res) => {
     try {
-      const { loginUsername, password } = req.body;
+      var { loginUsername, password } = req.body;
   
       // Determine if the loginUsername is an ERP or an email
       let user;
       if (loginUsername.includes('@')) {
+        loginUsername =loginUsername.toLowerCase();
         // If loginUsername contains '@', treat it as an email
         user = await User.findOne({ email: loginUsername });
       } else {
+
+        if (Validator.erpValidator.validator(loginUsername) == false){
+          return res.status(400).json({ msg: "Please Enter a Valid ERP or Email Address" });
+        }
         // Otherwise, treat it as an ERP
         user = await User.findOne({ erp: loginUsername });
       }

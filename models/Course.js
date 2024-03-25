@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { emailValidator, passwordValidator, erpValidator } = require('../utils/validators'); // Define these validators in a separate file or inside this one
 const Schema = mongoose.Schema;
 
 

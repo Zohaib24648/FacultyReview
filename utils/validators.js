@@ -29,14 +29,14 @@ const emailValidator = {
 }
 
 
-const erpValidator ={
-    
-        validator: function(value) {
-            return value.toString().length === 5;
-        },
-        message: "ERP number must be exactly 5 digits long."
-    
-}
+const erpValidator = {
+  validator: function(value) {
+      // Ensure the value is a number and has a length of 5 digits
+      return /^\d{5}$/.test(value.toString());
+  },
+  message: "ERP number must be exactly 5 digits long."
+};
+
   
   module.exports = { emailValidator, passwordValidator, emptyValidator, erpValidator };
   

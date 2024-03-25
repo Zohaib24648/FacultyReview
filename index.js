@@ -4,8 +4,8 @@ const port = 3001;
 const mongoose = require('mongoose');
 const cors = require('cors');
 app.use(cors());
-const mainRouter = require('./modules'); // This imports the aggregated router from your modules folder
-app.use('/', mainRouter); // Correctly use the imported router
+// const mainRouter = require('./modules'); // This imports the aggregated router from your modules folder
+// app.use('/', mainRouter); // Correctly use the imported router
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -21,4 +21,29 @@ console.log('Connected to the Database');
 
     });
 
-//importing routes from other files
+
+
+
+// Import route modules
+const userRoutes = require('./routes/users');
+const commentRoutes = require('./routes/comments');
+const teacherRoutes = require('./routes/teachers');
+const courseRoutes = require('./routes/courses');
+
+// Use route modules
+app.use('/api/users', userRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/teachers', teacherRoutes);
+app.use('/api/courses', courseRoutes);
+
+// Catch-all for unhandled routes
+app.use((req, res, next) => {
+  res.status(404).send('Sorry, that route does not exist.');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+

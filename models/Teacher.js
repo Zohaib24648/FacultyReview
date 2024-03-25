@@ -5,23 +5,23 @@ const Schema = mongoose.Schema;
 
 
 const teacherSchema = new mongoose.Schema({
-    Name: String,
-    Title: String,
-    Email: String,
-    Overview: String,
-    CoursesTaught: [String],
+    Name: { type : String, required: true },
+    Title: {type: String, default: 'Instructor'},
+    Email: {type:String, default: ''},
+    Overview: {type: String, default: ""},
+    CoursesTaught:{type:  [String], default: []},
     CoursesTaughtIDs: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course'
     }],
-    Department: String,
-    Specialization: String,
-    OnboardStatus: String,
-    ImageFile: String,
-    createdBy: String,
-    modifiedBy: String,
-    createdAt: Date,
-    modifiedAt: Date,
+    Department: {type: String, default:""},
+    Specialization: {type: String, default:""},
+    OnboardStatus: {type: String, default:"Avaialble"},
+    ImageFile: {type: String, default:""},
+    createdBy: {type: String, default:""},
+    modifiedBy: {type: String, default:""},
+    createdAt: {type:Date, default:Date.now},
+    modifiedAt: {type:Date, default:Date.now},
     isDeleted: { type: Boolean, default: false }
   });
   

@@ -4,8 +4,6 @@ const port = 3001;
 const mongoose = require('mongoose');
 const cors = require('cors');
 app.use(cors());
-// const mainRouter = require('./modules'); // This imports the aggregated router from your modules folder
-// app.use('/', mainRouter); // Correctly use the imported router
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

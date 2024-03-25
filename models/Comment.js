@@ -23,9 +23,9 @@ const commentSchema = new mongoose.Schema({
 
     comment: {
         type: String,
-        required: true,
-        validate: emptyValidator
-    },
+    //     required: true,
+    //     validate: emptyValidator
+},
 
     rating: {
         type: Array,
@@ -58,10 +58,10 @@ const commentSchema = new mongoose.Schema({
         default: 0
     },
 
-    createdby :String,
-    modifiedby:String,
-    createdat:Date,
-    modifiedat:Date,
+    createdby :{type: String, default:""},
+    modifiedby:{type: String, default:""},
+    createdat:{type:Date, default:Date.now},
+    modifiedat:{type:Date, default:Date.now},
     isDeleted:{type:Boolean,default:false}
 });
 

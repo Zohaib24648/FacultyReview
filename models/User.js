@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
         unique:true,
         validate: erpValidator
     },
-    profile_picture : String,
+    profile_picture : {type:String,default:""},
     
     roles: {
       type: [String], 
@@ -52,10 +52,10 @@ const userSchema = new mongoose.Schema({
     saved_courses : {type:Array,
     default:[]},
     isdeleted : {type:Boolean,default:false}, 
-    createdby :String,
-    modifiedby:String,
-    createdat:Date,
-    modifiedat:Date
+    createdby :{type:String,default:""},
+    modifiedby:{type:String,default:""},
+    createdat:{type:Date, default:Date.now},
+    modifiedat:{type:Date, default:Date.now}
    });
 
 

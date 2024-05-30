@@ -131,8 +131,7 @@ router.post('/createTeacher', authenticateToken, requireRole("Moderator"), async
       res.status(500).json({ msg: "Internal server error" });
     }
   });
-  
-router.get('/getallteachers',authenticateToken,requireRole("User"), async (req, res) => {
+  router.get('/getallteachers', authenticateToken, requireRole("User"), async (req, res) => {
     try {
       const teachers = await Teachers.find({});
       res.status(200).json(teachers);
@@ -141,8 +140,6 @@ router.get('/getallteachers',authenticateToken,requireRole("User"), async (req, 
       res.status(500).json({ msg: "Internal server error", error: error.message });
     }
   });
-  
-  
   
   
   router.post('/getcoursesforteacher', authenticateToken, requireRole("User"), async (req, res) => {

@@ -1,15 +1,17 @@
 const express = require('express');
-const app = express();
-const port = 3001;
 const mongoose = require('mongoose');
 const cors = require('cors');
-app.use(cors());
+const app = express();
+const port = 3001;
 
+// Middleware for CORS and parsing request bodies
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// mongoose.connect('mongodb+srv://Zohaib24648:Zohaib24648@userlogins.94nzbbm.mongodb.net/').then (() => {
-mongoose.connect('mongodb://localhost:27017').then (() => {
+
+mongoose.connect('mongodb+srv://Zohaib24648:Zohaib24648@userlogins.94nzbbm.mongodb.net/').then (() => {
+// mongoose.connect('mongodb://localhost:27017').then (() => {
 
 console.log('Connected to the Database');
     app.listen(port, () => console.log(`Server is running on port ${port}`));
@@ -27,12 +29,14 @@ const userRoutes = require('./routes/users');
 const commentRoutes = require('./routes/comments');
 const teacherRoutes = require('./routes/teachers');
 const courseRoutes = require('./routes/courses');
+const ratingRoutes = require('./routes/ratings');
 
 // Use route modules
 app.use('/api/users', userRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/ratings', ratingRoutes);
 
 // Catch-all for unhandled routes
 app.use((req, res, next) => {
@@ -44,4 +48,3 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
-

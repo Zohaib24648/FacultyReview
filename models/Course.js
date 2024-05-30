@@ -17,7 +17,5 @@ const courseSchema = new Schema({
       ref: 'Teacher' // Ensure 'Teacher' matches the name of your teacher model
     }]
   });
-  
-  const Courses = mongoose.model('Courses', courseSchema);
-    
+      
   module.exports = mongoose.model('Course', courseSchema);

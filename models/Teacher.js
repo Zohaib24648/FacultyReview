@@ -24,7 +24,5 @@ const teacherSchema = new mongoose.Schema({
   });
   
   
-  // Create a model for your collection
-  const Teachers = mongoose.model('Teachers', teacherSchema);
-  
+  // Create a model for your collection 
   module.exports = mongoose.model('Teacher', teacherSchema);

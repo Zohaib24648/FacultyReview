@@ -112,13 +112,13 @@ router.post("/login", async (req, res) => {
 
     // Use a unique identifier for JWT; could be user's id, email, or a combination
     const token = jwt.sign({
+      _id: user._id,  // MongoDB document ID
       erp: user.erp,
       email: user.email,
       roles: user.roles,
       firstname: user.firstname,
-      lastname: user.lastname,
-      createdAt: new Date(),
-    }, securityKey, { expiresIn: "1d" });
+      lastname: user.lastname
+    }, securityKey, { expiresIn: "10d" });
 
     console.log("User authenticated successfully, token generated");
 
@@ -128,10 +128,9 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.log("An error occurred:", error);
-    return res.status(500).json({ msg: "INTERNAL SERVER ERROR" }); // Ensure consistent error format
+    return res.status(500).json({ msg: "INTERNAL SERVER ERROR" });
   }
 });
-
   
   router.get('/logout', async (req, res) => {
     try {

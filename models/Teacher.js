@@ -7,11 +7,8 @@ const teacherSchema = new mongoose.Schema({
     Title: {type: String, default: 'Instructor'},
     Email: {type:String, default: ''},
     Overview: {type: String, default: ""},
-    CoursesTaught:{type:  [String], default: []},
-    CoursesTaughtIDs: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Course'
-    }],
+    'Courses Taught':{type:  [String], default: []},
+    CoursesTaughtIDs: {type:  [String], default: []},
     Department: {type: String, default:""},
     Specialization: {type: String, default:""},
     OnboardStatus: {type: String, default:"Avaialble"},

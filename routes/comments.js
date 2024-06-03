@@ -4,9 +4,22 @@ const authenticateToken = require('../middleware/authenticateToken');
 const requireRole = require('../middleware/requireRole');
 const Comments = require('../models/Comment');
 const mongoose = require('mongoose');
+const Post = require ('../models/Post')
 
+function logBodies(req, res, next) {
+    console.log('Request Body:', req.body);
 
-router.post('/postcomment', authenticateToken, requireRole("User"), async (req, res) => {
+    // Override the res.json method to log response body
+    const originalJson = res.json;
+    res.json = function (body) {
+        console.log('Response Body:', body);
+        originalJson.call(this, body);
+    };
+
+    next();
+}
+
+router.post('/postcomment', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
   const { teacher_id, comment, course_id, anonymous, parent_id } = req.body;
   const name = req.user.firstname + " " + req.user.lastname;
   const erp = req.user.erp;
@@ -32,9 +45,44 @@ router.post('/postcomment', authenticateToken, requireRole("User"), async (req, 
       console.log(error.message);
   }
 });
+router.post('/postCommentOnPost', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+    console.log(req.body);
+    const { post_id, commentText, anonymous } = req.body;
+  
+    // Validate post_id
+    if (!mongoose.Types.ObjectId.isValid(post_id)) {
+      return res.status(400).json({ msg: "Invalid post ID format." });
+    }
+  
+    try {
+      // Create the comment
+      const newComment = await Comments.create({
+        erp: req.user.erp, // Assuming 'erp' is available in req.user
+        name: req.user.firstname + " " + req.user.lastname,
+        comment: commentText,
+        anonymous: anonymous,
+        createdby: req.user.email,
+        modifiedby: req.user.email,
+        createdat: new Date(),
+        modifiedat: new Date(),
+        // No need to include teacher_id or course_id unless explicitly needed
+      });
+  
+      // Update the post to include the new comment's ID
+      await Post.findByIdAndUpdate(post_id, {
+        $push: { comments: newComment._id },
+        $set: { modifiedAt: new Date() }
+      });
+  
+      res.status(201).json({ msg: "Comment posted successfully", commentId: newComment._id });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ msg: "Internal server error", error: error.message });
+    }
+  });
 
 
-router.patch('/updatecomment', authenticateToken, requireRole("User"), async (req, res) => {
+router.patch('/updatecomment', authenticateToken, requireRole("User"), logBodies,async (req, res) => {
     try {
         const { commentId, newComment, newAnonymousStatus } = req.body;
 
@@ -68,7 +116,7 @@ router.patch('/updatecomment', authenticateToken, requireRole("User"), async (re
     }
 });
 
-router.delete('/deletecomment', authenticateToken, async (req, res) => {
+router.delete('/deletecomment', authenticateToken, logBodies,async (req, res) => {
     try {
         const { objectId } = req.body;
         const commentToDelete = await Comments.findById(objectId);
@@ -97,7 +145,7 @@ router.delete('/deletecomment', authenticateToken, async (req, res) => {
     }
 });
 
-router.post('/getcommentsofteacher', authenticateToken, requireRole("User"), async (req, res) => {
+router.post('/getcommentsofteacher', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
   try {
       const { teacher_id } = req.body;
 
@@ -122,7 +170,7 @@ router.post('/getcommentsofteacher', authenticateToken, requireRole("User"), asy
   }
 });
 
-router.post('/getcommentsofcourse', authenticateToken, requireRole("User"), async (req, res) => {
+router.post('/getcommentsofcourse', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
     try {
         const { course_id } = req.body;
 
@@ -143,7 +191,7 @@ router.post('/getcommentsofcourse', authenticateToken, requireRole("User"), asyn
     }
 });
 
-router.post('/getcommentsforteacherandcourse', authenticateToken, requireRole("User"), async (req, res) => {
+router.post('/getcommentsforteacherandcourse', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
     try {
         const { teacher_id, course_id } = req.body;
 
@@ -174,6 +222,62 @@ router.post('/getcommentsforteacherandcourse', authenticateToken, requireRole("U
         console.error(error);
         res.status(500).json({ msg: "Internal server error", error: error.toString() });
     }
+});
+
+
+router.post('/postCommentOnPost', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+  const { post_id, commentText, anonymous } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(post_id)) {
+    return res.status(400).json({ msg: "Invalid post ID format." });
+  }
+
+  try {
+    // Create the comment using the Comment model structure
+    const newComment = await Comments.create({
+      erp: req.user.erp,
+      name: req.user.firstname + " " + req.user.lastname,
+      comment: commentText,
+      anonymous: anonymous,
+      createdby: req.user.email,
+      modifiedby: req.user.email,
+      createdat: new Date(),
+      modifiedat: new Date(),
+      teacher_id: null,
+      course_id: null,
+    });
+
+    // Update the post to include the new comment's ID
+    await Post.findByIdAndUpdate(post_id, {
+      $push: { comments: newComment._id },
+      $set: { modifiedAt: new Date() }
+    });
+
+    res.status(201).json({ msg: "Comment posted successfully", commentId: newComment._id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error", error: error.message });
+  }
+});
+
+// Route to get a comment by ID
+router.post('/getcommentbyid', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+  const { commentId } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(commentId)) {
+    return res.status(400).json({ msg: "Invalid comment ID format." });
+  }
+
+  try {
+    const comment = await Comments.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ msg: "Comment not found." });
+    }
+    res.status(200).json(comment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error", error: error.message });
+  }
 });
 
 module.exports = router;

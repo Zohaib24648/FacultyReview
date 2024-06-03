@@ -135,6 +135,7 @@ router.post('/createTeacher', authenticateToken, requireRole("Moderator"), async
     try {
       const teachers = await Teachers.find({});
       res.status(200).json(teachers);
+      // console.log(teachers[0])
     } catch (error) {
       console.error(error);
       res.status(500).json({ msg: "Internal server error", error: error.message });

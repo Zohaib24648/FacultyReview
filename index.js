@@ -30,6 +30,7 @@ const commentRoutes = require('./routes/comments');
 const teacherRoutes = require('./routes/teachers');
 const courseRoutes = require('./routes/courses');
 const ratingRoutes = require('./routes/ratings');
+const postRoutes = require('./routes/posts')
 
 // Use route modules
 app.use('/api/users', userRoutes);
@@ -37,6 +38,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api/posts',postRoutes)
 
 // Catch-all for unhandled routes
 app.use((req, res, next) => {

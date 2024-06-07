@@ -12,6 +12,7 @@ const Teachers = require('../models/Teacher');
 const Courses = require('../models/Course');
 const Comments = require('../models/Comment');
 const Users = require('../models/User');
+const upload = require('../middleware/uploadImage')
 
 router.post("/register", async (req, res) => {
   console.log('Received request:', req.body);
@@ -216,13 +217,10 @@ router.get('/getuserprofile',authenticateToken, requireRole("User"),async(req,re
   
   });
   
-  
-  router.patch('/updateProfile', authenticateToken, async (req, res) => {
-    // Extract the desired updates from the request body
+  router.patch('/updateProfile', authenticateToken, upload.single('profile_picture'), async (req, res) => {
     const { updated_firstname, updated_lastname, updated_profile_picture } = req.body;
   
     try {
-      // Assuming authenticateToken middleware adds the decoded token to req.user
       const erp = req.user.erp;
   
       // Find the user by ERP
@@ -234,22 +232,42 @@ router.get('/getuserprofile',authenticateToken, requireRole("User"),async(req,re
       // Apply the updates if provided
       if (updated_firstname) user.firstname = updated_firstname;
       if (updated_lastname) user.lastname = updated_lastname;
-      if (updated_profile_picture) user.profile_picture = updated_profile_picture;
+  
+      // Handle profile picture
+      if (updated_profile_picture) {
+        // If profile picture is provided as a base64 string
+        if (updated_profile_picture.startsWith('data:image/')) {
+          user.profile_picture = updated_profile_picture;
+        } else {
+          return res.status(400).json({ msg: "Invalid base64 image format" });
+        }
+      } else if (req.file) {
+        // If profile picture is provided as a file
+        const base64Image = req.file.buffer.toString('base64');
+        const mimeType = req.file.mimetype;
+  
+        // Combine mime type and base64 data into a single string
+        user.profile_picture = `data:${mimeType};base64,${base64Image}`;
+      }
   
       // Save the updated user
       await user.save();
   
-      // Respond with a success message
       res.status(200).json({
         msg: "Profile updated successfully",
-        user: { erp, email: user.email, firstname: user.firstname, lastname: user.lastname, profile_picture: user.profile_picture }
+        user: {
+          erp,
+          email: user.email,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          profile_picture: user.profile_picture
+        }
       });
     } catch (error) {
       console.error(error);
       res.status(500).json({ msg: "Internal server error" });
     }
   });
-
 
 
   

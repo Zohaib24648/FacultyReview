@@ -180,6 +180,19 @@ router.post('/createTeacher', authenticateToken, requireRole("Moderator"), async
  */
 router.get('/:teacherId', authenticateToken, async (req, res) => {
     // Implement logic to fetch a specific teacher profile by its ID
+    const teacherId = req.params.teacherId;
+    try {
+      const teacher = await Teachers.findById(teacherId);
+  
+      if (!teacher) {
+        return res.status(404).json({ msg: "Teacher not found." });
+      }
+  
+      res.status(200).json(teacher);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ msg: "Internal server error" });
+    }
 });
 
 // Export the router to use in your app.js

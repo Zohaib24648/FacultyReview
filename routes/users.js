@@ -14,125 +14,138 @@ const Comments = require('../models/Comment');
 const Users = require('../models/User');
 const upload = require('../middleware/uploadImage')
 
+
 router.post("/register", async (req, res) => {
   console.log('Received request:', req.body);
   try {
-    var { email, password, firstname, lastname, erp } = req.body;
-    
+    var { email, password, firstname, lastname, erp, role } = req.body;
+
     // Validate input formats
-    if(!Validator.emailValidator.validator(email) || !Validator.erpValidator.validator(erp)){
+    if (!Validator.emailValidator.validator(email) || !Validator.erpValidator.validator(erp)) {
       return res.status(400).json({ msg: "Please Enter a Valid Email Address or ERP" });
     }
     
-    email = email.toLowerCase();  
-
-    // Check for existing records
-    const existingUserByEmail = await User.findOne({ email });
-    if (existingUserByEmail) {
-      return res.status(409).json({ msg: "This email is already in use" });
+    // Validate role format
+    if (!['Admin', 'User'].includes(role)) {
+      return res.status(400).json({ msg: "Invalid role specified. Role must be either 'Admin' or 'User'." });
     }
 
+    email = email.toLowerCase();  
+
+    // Check for existing records by email
+    const existingUserByEmail = await User.findOne({ email });
+    if (existingUserByEmail) {
+      return res.status(409).json({ msg: "This email is already in use. Please use a different email." });
+    }
+
+    // Check for existing records by ERP
     const existingUserByErp = await User.findOne({ erp });
     if (existingUserByErp) {
-      return res.status(409).json({ msg: "This ERP is already in use" });
+      return res.status(409).json({ msg: "This ERP number is already in use. Please use a different ERP number." });
     }
 
     // Validate password strength
     if (!Validator.passwordValidator.validator(password)) {
       return res.status(400).json({ 
-        msg: "Password must contain at least 1 uppercase letter, 1 number, and be longer than 8 characters."
+        msg: "Password must be at least 8 characters long, contain at least one uppercase letter, and one number."
       });
     }
 
-    // Hash password and create user
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({ 
+    
+    // Set roles based on the selected role
+    let roles = [role];
+    if (role === 'Admin') {
+      roles.push('User'); // Admins should also have the 'User' role
+    }
+
+    // Create the user
+    const newUser = await User.create({ 
       email, 
       password: hashedPassword,
       firstname,
       lastname,
       erp,
+      roles, // Assign the roles array
       createdby: email,
       createdat: new Date(),
       modifiedat: new Date()
     });
     
     // Successful registration
-    return res.status(200).json({ msg: "Registration successful" });
+    return res.status(201).json({ msg: "Registration successful", user: newUser });
   } catch (error) {
     console.error(error);
-    // Handle specific error scenarios
+    
+    // Enhanced error handling based on error type
     if (error.name === 'ValidationError') {
-      return res.status(400).json({ msg: "There was a validation error.", details: error.message });
+      return res.status(400).json({ msg: "Validation error occurred.", details: error.message });
     } else if (error.code === 11000) {
-      return res.status(409).json({ msg: "There was a duplicate key error.", details: error.message });
+      return res.status(409).json({ msg: "Duplicate key error. This resource already exists.", details: error.message });
     } else {
-      return res.status(500).json({ msg: error.message });
+      return res.status(500).json({ msg: "Internal server error", details: error.message });
     }
   }
 });
-
+// src/routes/users.js
 router.post("/login", async (req, res) => {
   console.log("Request body received:", req.body);
 
   try {
-    var { loginUsername, password } = req.body;
+      var { loginUsername, password, role } = req.body;
 
-    // Log received username and password
-    console.log("Login Username:", loginUsername);
-    console.log("Password:", password);
-
-    // Determine if the loginUsername is an ERP or an email
-    let user;
-    if (loginUsername.includes('@')) {
-      loginUsername = loginUsername.toLowerCase();
-      // If loginUsername contains '@', treat it as an email
-      console.log("Processing as email:", loginUsername);
-      user = await User.findOne({ email: loginUsername });
-    } else {
-      console.log("Processing as ERP:", loginUsername);
-
-      if (Validator.erpValidator.validator(loginUsername) == false) {
-        console.log("Invalid ERP format");
-        return res.status(400).json({ msg: "Please Enter a Valid ERP or Email Address" });
+      // Determine if the loginUsername is an ERP or an email
+      let user;
+      if (loginUsername.includes('@')) {
+          loginUsername = loginUsername.toLowerCase();
+          user = await User.findOne({ email: loginUsername });
+      } else {
+          if (!Validator.erpValidator.validator(loginUsername)) {
+              return res.status(400).json({ msg: "Please Enter a Valid ERP or Email Address" });
+          }
+          user = await User.findOne({ erp: loginUsername });
       }
-      // Otherwise, treat it as an ERP
-      user = await User.findOne({ erp: loginUsername });
-    }
 
-    if (!user) {
-      console.log("No user found with the provided ERP or Email");
-      return res.status(404).json({ msg: "This ERP or Email is not linked to any account" });
-    }
+      if (!user) {
+          return res.status(404).json({ msg: "This ERP or Email is not linked to any account" });
+      }
 
-    const passwordCheck = await bcrypt.compare(password, user.password);
-    if (!passwordCheck) {
-      console.log("Incorrect password");
-      return res.status(401).json({ msg: "Incorrect Password" }); // 401 Unauthorized for wrong credentials
-    }
+      const passwordCheck = await bcrypt.compare(password, user.password);
+      if (!passwordCheck) {
+          return res.status(401).json({ msg: "Incorrect Password" });
+      }
 
-    // Use a unique identifier for JWT; could be user's id, email, or a combination
-    const token = jwt.sign({
-      _id: user._id,  // MongoDB document ID
-      erp: user.erp,
-      email: user.email,
-      roles: user.roles,
-      firstname: user.firstname,
-      lastname: user.lastname
-    }, securityKey, { expiresIn: "10d" });
+      // Check if the user is authorized for the selected role
+      if (role === 'Admin' && !user.roles.includes('Admin')) {
+          return res.status(403).json({ msg: "You do not have Admin privileges." });
+      }
 
-    console.log("User authenticated successfully, token generated");
+      // If the user is not an admin, they should only be allowed to log in as a User
+      if (role === 'User' && !user.roles.includes('User')) {
+          return res.status(403).json({ msg: "You do not have User privileges." });
+      }
 
-    res.json({
-      msg: "LOGGED IN",
-      token
-    });
+      const token = jwt.sign({
+          _id: user._id,
+          erp: user.erp,
+          email: user.email,
+          roles: user.roles,
+          firstname: user.firstname,
+          lastname: user.lastname
+      }, securityKey, { expiresIn: "10d" });
+
+      res.json({
+          msg: "LOGGED IN",
+          token,
+          user // Include user details in the response
+      });
   } catch (error) {
-    console.log("An error occurred:", error);
-    return res.status(500).json({ msg: "INTERNAL SERVER ERROR" });
+      console.log("An error occurred:", error);
+      return res.status(500).json({ msg: "INTERNAL SERVER ERROR" });
   }
 });
-  
+
   router.get('/logout', async (req, res) => {
     try {
       // Invalidate token by removing it from the client-side storage

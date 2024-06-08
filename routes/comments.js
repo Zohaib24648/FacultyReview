@@ -44,42 +44,48 @@ router.post('/postcomment', authenticateToken, requireRole("User"),logBodies, as
       res.status(500).json({ msg: "Internal server error", error: error.message });
       console.log(error.message);
   }
-});
-router.post('/postCommentOnPost', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
-    console.log(req.body);
-    const { post_id, commentText, anonymous } = req.body;
-  
-    // Validate post_id
-    if (!mongoose.Types.ObjectId.isValid(post_id)) {
+});router.post('/postCommentOnPost', authenticateToken, requireRole("User"), async (req, res) => {
+  const { post_id, commentText, anonymous } = req.body;
+
+  // Validate post_id
+  if (!mongoose.Types.ObjectId.isValid(post_id)) {
       return res.status(400).json({ msg: "Invalid post ID format." });
-    }
-  
-    try {
-      // Create the comment
+  }
+
+  try {
+      // Create the new comment
       const newComment = await Comments.create({
-        erp: req.user.erp, // Assuming 'erp' is available in req.user
-        name: req.user.firstname + " " + req.user.lastname,
-        comment: commentText,
-        anonymous: anonymous,
-        createdby: req.user.email,
-        modifiedby: req.user.email,
-        createdat: new Date(),
-        modifiedat: new Date(),
-        // No need to include teacher_id or course_id unless explicitly needed
+          erp: req.user.erp, // Assuming 'erp' is available in req.user
+          name: req.user.firstname + " " + req.user.lastname,
+          comment: commentText,
+          anonymous: anonymous,
+          createdby: req.user.email,
+          modifiedby: req.user.email,
+          createdat: new Date(),
+          modifiedat: new Date(),
+          // No need to include teacher_id or course_id unless explicitly needed
       });
-  
+
       // Update the post to include the new comment's ID
       await Post.findByIdAndUpdate(post_id, {
-        $push: { comments: newComment._id },
-        $set: { modifiedAt: new Date() }
+          $push: { comments: newComment._id },
+          $set: { modifiedAt: new Date() }
       });
-  
-      res.status(201).json({ msg: "Comment posted successfully", commentId: newComment._id });
-    } catch (error) {
+
+      // Return the new comment details in the response
+      res.status(201).json({
+          msg: "Comment posted successfully",
+          commentId: newComment._id,
+          commentText: commentText,         // Include the comment text
+          anonymous: anonymous,             // Include the anonymous flag
+          name: anonymous ? 'Anonymous' : `${req.user.firstname} ${req.user.lastname}`, // Provide the commenter's name based on the anonymous flag
+          createdAt: newComment.createdat.toISOString() // Include the creation date in ISO string format
+      });
+  } catch (error) {
       console.error(error);
       res.status(500).json({ msg: "Internal server error", error: error.message });
-    }
-  });
+  }
+});
 
 
 router.patch('/updatecomment', authenticateToken, requireRole("User"), logBodies,async (req, res) => {

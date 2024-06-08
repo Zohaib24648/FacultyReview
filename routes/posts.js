@@ -3,31 +3,7 @@ const router = express.Router();
 const authenticateToken = require('../middleware/authenticateToken');
 const requireRole = require('../middleware/requireRole');
 const Post = require('../models/Post'); // Ensure this points to your Post model
-
-// Middleware for handling exceptions inside of async express routes
-function asyncHandler(handler) {
-    return async (req, res, next) => {
-        try {
-            console.log(`Incoming request: ${req.method} ${req.path}`);
-            console.log(req.body)
-
-            // Create a reference to the original send method
-            const originalSend = res.send.bind(res);
-
-            // Override the send method to capture the response body
-            res.send = (body) => {
-                console.log('Responded:', body);  // Log the response body
-                res.send = originalSend;  // Restore original send method
-                return res.send(body);  // Send the response body
-            };
-
-            await handler(req, res, next);
-        } catch (error) {
-            console.error(`Error handling request ${req.method} ${req.path}: ${error.message}`);
-            res.status(500).json({ message: "Internal server error", error: error.message });
-        }
-    };
-}
+const asyncHandler = require('../middleware/loggingMiddleware')
 
 
 // Create a new post
@@ -145,9 +121,16 @@ router.post('/getpostbyid', authenticateToken, asyncHandler(async (req, res) => 
     const post = await Post.findById(postId)
         .populate({
             path: 'createdBy',
-            select: 'firstname lastname -_id' // Only fetching necessary fields
+            select: 'firstname lastname -_id'
         })
-        .lean(); // Converts the Mongoose document into a plain JavaScript object
+        .populate({
+            path: 'comments',
+            populate: {
+                path: 'createdby',
+                select: 'firstname lastname -_id'
+            }
+        })
+        .lean();
 
     if (!post) {
         return res.status(404).json({ message: "Post not found" });
@@ -157,9 +140,16 @@ router.post('/getpostbyid', authenticateToken, asyncHandler(async (req, res) => 
     if (post.anonymous) {
         post.createdBy = 'Anonymous';
     } else {
-        // Combine first name and last name if not anonymous
         post.createdBy = `${post.createdBy.firstname} ${post.createdBy.lastname}`;
     }
+
+    // Process comments to handle anonymity
+    post.comments = post.comments.map(comment => {
+        if (comment.anonymous) {
+            comment.name = 'Anonymous';
+        }
+        return comment;
+    });
 
     res.json(post);
 }));

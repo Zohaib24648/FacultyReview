@@ -131,17 +131,39 @@ router.post('/createTeacher', authenticateToken, requireRole("Moderator"), async
       res.status(500).json({ msg: "Internal server error" });
     }
   });
+
   router.get('/getallteachers', authenticateToken, requireRole("User"), async (req, res) => {
     try {
-      const teachers = await Teachers.find({});
-      res.status(200).json(teachers);
-      // console.log(teachers[0])
+        const { page = 1, limit = 10, search = '' } = req.query;
+
+        // Create a search condition
+        const searchCondition = search ? { 
+            $or: [
+                { Name: { $regex: search, $options: 'i' } }, 
+                { Title: { $regex: search, $options: 'i' } }
+            ] 
+        } : {};
+
+        // Find teachers based on search condition and pagination
+        const teachers = await Teachers.find(searchCondition)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        const total = await Teachers.countDocuments(searchCondition);
+
+        res.status(200).json({
+            teachers,
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / limit),
+            totalItems: total
+        });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ msg: "Internal server error", error: error.message });
+        console.error(error);
+        res.status(500).json({ msg: "Internal server error", error: error.message });
     }
-  });
-  
+});
+
+
   
   router.post('/getcoursesforteacher', authenticateToken, requireRole("User"), async (req, res) => {
     try {

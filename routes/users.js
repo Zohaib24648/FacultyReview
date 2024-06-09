@@ -16,7 +16,6 @@ const upload = require('../middleware/uploadImage')
 
 
 router.post("/register", async (req, res) => {
-  console.log('Received request:', req.body);
   try {
     var { email, password, firstname, lastname, erp, role } = req.body;
 

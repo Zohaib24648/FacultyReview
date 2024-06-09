@@ -1,27 +1,24 @@
+// loggingMiddleware.js
 
-// Middleware for handling exceptions inside of async express routes
-function asyncHandler(handler) {
-    return async (req, res, next) => {
-        try {
-            console.log(`Incoming request: ${req.method} ${req.path}`);
-            console.log(req.body)
+function loggingMiddleware(req, res, next) {
+    // Log the incoming request details
+    console.log(`Incoming request: ${req.method} ${req.path}`);
+    if (Object.keys(req.body).length !== 0) {
+        console.log('Request body:', req.body);
+    }
 
-            // Create a reference to the original send method
-            const originalSend = res.send.bind(res);
+    // Reference to the original send method
+    const originalSend = res.send.bind(res);
 
-            // Override the send method to capture the response body
-            res.send = (body) => {
-                console.log('Responded:', body);  // Log the response body
-                res.send = originalSend;  // Restore original send method
-                return res.send(body);  // Send the response body
-            };
-
-            await handler(req, res, next);
-        } catch (error) {
-            console.error(`Error handling request ${req.method} ${req.path}: ${error.message}`);
-            res.status(500).json({ message: "Internal server error", error: error.message });
-        }
+    // Override the send method to capture and log the response body
+    res.send = (body) => {
+        console.log('Responded with:', body);  // Log the response body
+        res.send = originalSend;  // Restore the original send method
+        return res.send(body);  // Send the response body
     };
+
+    // Proceed to the next middleware or route handler
+    next();
 }
 
-module.exports = asyncHandler
+module.exports = loggingMiddleware;

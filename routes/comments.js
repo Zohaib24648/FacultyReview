@@ -6,20 +6,8 @@ const Comments = require('../models/Comment');
 const mongoose = require('mongoose');
 const Post = require ('../models/Post')
 
-function logBodies(req, res, next) {
-    console.log('Request Body:', req.body);
 
-    // Override the res.json method to log response body
-    const originalJson = res.json;
-    res.json = function (body) {
-        console.log('Response Body:', body);
-        originalJson.call(this, body);
-    };
-
-    next();
-}
-
-router.post('/postcomment', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+router.post('/postcomment', authenticateToken, requireRole("User"), async (req, res) => {
   const { teacher_id, comment, course_id, anonymous, parent_id } = req.body;
   const name = req.user.firstname + " " + req.user.lastname;
   const erp = req.user.erp;
@@ -88,7 +76,7 @@ router.post('/postcomment', authenticateToken, requireRole("User"),logBodies, as
 });
 
 
-router.patch('/updatecomment', authenticateToken, requireRole("User"), logBodies,async (req, res) => {
+router.patch('/updatecomment', authenticateToken, requireRole("User"), async (req, res) => {
     try {
         const { commentId, newComment, newAnonymousStatus } = req.body;
 
@@ -122,7 +110,7 @@ router.patch('/updatecomment', authenticateToken, requireRole("User"), logBodies
     }
 });
 
-router.delete('/deletecomment', authenticateToken, logBodies,async (req, res) => {
+router.delete('/deletecomment', authenticateToken, async (req, res) => {
     try {
         const { objectId } = req.body;
         const commentToDelete = await Comments.findById(objectId);
@@ -151,7 +139,7 @@ router.delete('/deletecomment', authenticateToken, logBodies,async (req, res) =>
     }
 });
 
-router.post('/getcommentsofteacher', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+router.post('/getcommentsofteacher', authenticateToken, requireRole("User"), async (req, res) => {
   try {
       const { teacher_id } = req.body;
 
@@ -176,7 +164,7 @@ router.post('/getcommentsofteacher', authenticateToken, requireRole("User"),logB
   }
 });
 
-router.post('/getcommentsofcourse', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+router.post('/getcommentsofcourse', authenticateToken, requireRole("User"), async (req, res) => {
     try {
         const { course_id } = req.body;
 
@@ -197,7 +185,7 @@ router.post('/getcommentsofcourse', authenticateToken, requireRole("User"),logBo
     }
 });
 
-router.post('/getcommentsforteacherandcourse', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+router.post('/getcommentsforteacherandcourse', authenticateToken, requireRole("User"),async (req, res) => {
     try {
         const { teacher_id, course_id } = req.body;
 
@@ -231,7 +219,7 @@ router.post('/getcommentsforteacherandcourse', authenticateToken, requireRole("U
 });
 
 
-router.post('/postCommentOnPost', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+router.post('/postCommentOnPost', authenticateToken, requireRole("User"), async (req, res) => {
   const { post_id, commentText, anonymous } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(post_id)) {
@@ -267,7 +255,7 @@ router.post('/postCommentOnPost', authenticateToken, requireRole("User"),logBodi
 });
 
 // Route to get a comment by ID
-router.post('/getcommentbyid', authenticateToken, requireRole("User"),logBodies, async (req, res) => {
+router.post('/getcommentbyid', authenticateToken, requireRole("User"), async (req, res) => {
   const { commentId } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(commentId)) {

@@ -119,7 +119,7 @@ router.post("/login", async (req, res) => {
           return res.status(403).json({ msg: "You do not have Admin privileges." });
       }
 
-      // // If the user is not an admin, they should only be allowed to log in as a User
+      // If the user is not an admin, they should only be allowed to log in as a User
       // if (role === 'User' && user.roles.includes('Admin')) {
       //     return res.status(403).json({ msg: "Admin cannot log in as User." });
       // }
@@ -133,10 +133,20 @@ router.post("/login", async (req, res) => {
           lastname: user.lastname
       }, securityKey, { expiresIn: "10d" });
 
+      // Create a new object excluding the password
+      const userWithoutPassword = {
+          _id: user._id,
+          erp: user.erp,
+          email: user.email,
+          roles: user.roles,
+          firstname: user.firstname,
+          lastname: user.lastname
+      };
+
       res.json({
           msg: "LOGGED IN",
           token,
-          // user // Include user details in the response
+          user: userWithoutPassword // Include the user details without the password
       });
   } catch (error) {
       console.log("An error occurred:", error);

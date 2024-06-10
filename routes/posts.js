@@ -82,10 +82,15 @@ router.post('/upvotepost', authenticateToken, async (req, res) => {
         if (post.upvotedBy.includes(req.user._id)) {
             return res.status(400).json({ message: "You have already upvoted this post" });
         }
+        if (post.downvotedBy.includes(req.user._id)) {
+            // Remove the downvote if the user has previously downvoted
+            post.downvotes--;
+            post.downvotedBy = post.downvotedBy.filter(userId => userId.toString() !== req.user._id.toString());
+        }
         post.upvotes++;
         post.upvotedBy.push(req.user._id);
         await post.save();
-        res.json({ message: "Post upvoted successfully" });
+        res.json({ message: "Post upvoted successfully", post });
     } catch (error) {
         res.status(500).json({ message: "Error upvoting post", error: error.message });
     }
@@ -102,14 +107,20 @@ router.post('/downvotepost', authenticateToken, async (req, res) => {
         if (post.downvotedBy.includes(req.user._id)) {
             return res.status(400).json({ message: "You have already downvoted this post" });
         }
+        if (post.upvotedBy.includes(req.user._id)) {
+            // Remove the upvote if the user has previously upvoted
+            post.upvotes--;
+            post.upvotedBy = post.upvotedBy.filter(userId => userId.toString() !== req.user._id.toString());
+        }
         post.downvotes++;
         post.downvotedBy.push(req.user._id);
         await post.save();
-        res.json({ message: "Post downvoted successfully" });
+        res.json({ message: "Post downvoted successfully", post });
     } catch (error) {
         res.status(500).json({ message: "Error downvoting post", error: error.message });
     }
 });
+
 // src/routes/posts.js
 
 // Get all posts

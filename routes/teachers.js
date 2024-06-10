@@ -57,8 +57,7 @@ router.post('/createTeacher', authenticateToken, requireRole("Moderator"), async
     try {
       const { id, Name, Title, Email, Overview, CoursesTaught, Department, Specialization, OnboardStatus, ImageFile } = req.body;
   
-      // For demonstration, using a static email. In a real app, derive this from the authenticated user.
-      const user = "zohaibalimughal7@gmail.com";
+      
   
       let updateData = {
         ...(Name && {Name}),

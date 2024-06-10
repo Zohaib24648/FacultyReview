@@ -87,7 +87,6 @@ router.post("/register", async (req, res) => {
     }
   }
 });
-// src/routes/users.js
 router.post("/login", async (req, res) => {
   console.log("Request body received:", req.body);
 
@@ -120,10 +119,10 @@ router.post("/login", async (req, res) => {
           return res.status(403).json({ msg: "You do not have Admin privileges." });
       }
 
-      // If the user is not an admin, they should only be allowed to log in as a User
-      if (role === 'User' && !user.roles.includes('User')) {
-          return res.status(403).json({ msg: "You do not have User privileges." });
-      }
+      // // If the user is not an admin, they should only be allowed to log in as a User
+      // if (role === 'User' && user.roles.includes('Admin')) {
+      //     return res.status(403).json({ msg: "Admin cannot log in as User." });
+      // }
 
       const token = jwt.sign({
           _id: user._id,
@@ -137,13 +136,14 @@ router.post("/login", async (req, res) => {
       res.json({
           msg: "LOGGED IN",
           token,
-          user // Include user details in the response
+          // user // Include user details in the response
       });
   } catch (error) {
       console.log("An error occurred:", error);
       return res.status(500).json({ msg: "INTERNAL SERVER ERROR" });
   }
 });
+
 
   router.get('/logout', async (req, res) => {
     try {

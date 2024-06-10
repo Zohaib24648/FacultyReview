@@ -5,6 +5,7 @@ const requireRole = require('../middleware/requireRole');
 const Comments = require('../models/Comment');
 const mongoose = require('mongoose');
 const Post = require ('../models/Post')
+const Posts = require('../models/Post');
 
 
 router.post('/postcomment', authenticateToken, requireRole("User"), async (req, res) => {
@@ -32,7 +33,9 @@ router.post('/postcomment', authenticateToken, requireRole("User"), async (req, 
       res.status(500).json({ msg: "Internal server error", error: error.message });
       console.log(error.message);
   }
-});router.post('/postCommentOnPost', authenticateToken, requireRole("User"), async (req, res) => {
+});
+
+router.post('/postCommentOnPost', authenticateToken, requireRole("User"), async (req, res) => {
   const { post_id, commentText, anonymous } = req.body;
 
   // Validate post_id
@@ -217,6 +220,43 @@ router.post('/getcommentsforteacherandcourse', authenticateToken, requireRole("U
         res.status(500).json({ msg: "Internal server error", error: error.toString() });
     }
 });
+
+router.post('/getcommentsofpost', authenticateToken, requireRole("User"), async (req, res) => {
+    try {
+        const { post_id } = req.body;
+
+        if (!post_id) {
+            return res.status(400).json({ msg: "Post ID is required." });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(post_id)) {
+            return res.status(400).json({ msg: "Invalid Post ID format." });
+        }
+
+        // Find the post by ID
+        const post = await Posts.findById(post_id);
+
+        if (!post) {
+            return res.status(404).json({ msg: "Post not found." });
+        }
+
+        // Get the comment IDs from the post
+        const commentIds = post.comments;
+
+        if (commentIds.length === 0) {
+            return res.status(404).json({ msg: "No comments found for the specified post." });
+        }
+
+        // Find all comments by their IDs
+        const comments = await Comments.find({ _id: { $in: commentIds } });
+
+        res.status(200).json(comments);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: "Internal server error", error: error.toString() });
+    }
+});
+
 
 
 router.post('/postCommentOnPost', authenticateToken, requireRole("User"), async (req, res) => {

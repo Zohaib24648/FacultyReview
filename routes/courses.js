@@ -1,5 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+const Course = require("../models/Course")
+const mongoosePaginate = require('mongoose-paginate-v2');
+
 
 // Import required middleware
 const authenticateToken = require('../middleware/authenticateToken');
@@ -35,16 +39,43 @@ const Teachers= require('../models/Teacher');
 //     // Implement logic to delete a course
 //     // Check if the logged-in user has the necessary role to delete a course
 // });
-
 router.get('/getallcourses', authenticateToken, requireRole("User"), async (req, res) => {
-    try {
-      const courses = await Courses.find({}); // Finds all courses
-      res.status(200).json(courses);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ msg: "Internal server error", error: error.message });
-    }
-  });
+  try {
+    const { page = 1, limit = 9, search = '' } = req.query;
+
+    // Log to verify the incoming search query
+    console.log(`Search Query: ${search}`);
+
+    // Build a search query condition
+    const searchCondition = search ? {
+      $or: [
+        { Course_name: { $regex: search, $options: 'i' } },
+        { Course_Description: { $regex: search, $options: 'i' } }
+      ]
+    } : {};
+
+    console.log(`Search Condition: ${JSON.stringify(searchCondition)}`);
+
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+    };
+
+    const result = await Courses.paginate(searchCondition, options);
+
+    res.status(200).json({
+      courses: result.docs,
+      totalCourses: result.totalDocs,
+      totalPages: result.totalPages,
+      currentPage: result.page,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Internal server error", error: error.message });
+  }
+});
+
+
   router.post('/getteachersforcourse', authenticateToken, requireRole("User"), async (req, res) => {
     try {
       const { course_id } = req.body;
@@ -78,6 +109,31 @@ router.get('/getallcourses', authenticateToken, requireRole("User"), async (req,
       res.status(500).json({ msg: "Internal server error", error: error.message });
     }
   });
+
+
+  router.get('/getcourse/:courseId', authenticateToken, async (req, res) => {
+    try {
+        const courseId = req.params.courseId.trim(); // Trim the courseId
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(courseId);
+
+        if (!isValidObjectId) {
+            return res.status(400).json({ msg: "Invalid Course ID." });
+        }
+
+        // Find the course and populate the teachers field
+        const course = await Courses.findById(courseId).populate('Teachers'); // 'Teachers' is the field to populate
+
+        if (!course) {
+            return res.status(404).json({ msg: "Course not found." });
+        }
+        
+        res.status(200).json(course);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: "Internal server error", error: error.message });
+    }
+});
+
   
 // Export the router to use in your app.js
 module.exports = router;

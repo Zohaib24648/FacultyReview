@@ -24,14 +24,14 @@ const commentSchema = new mongoose.Schema({
         type: Boolean,
         required: true
     },
-    teacher_id: {
-        type: mongoose.Schema.Types.ObjectId, // Adjusted to ObjectId
-        ref: 'Teacher'
-    },
-    course_id: {
-        type: mongoose.Schema.Types.ObjectId, // Adjusted to ObjectId
-        ref: 'Course'
-    },
+    // teacher_id: {
+    //     type: mongoose.Schema.Types.ObjectId, // Adjusted to ObjectId
+    //     ref: 'Teacher'
+    // },
+    // course_id: {
+    //     type: mongoose.Schema.Types.ObjectId, // Adjusted to ObjectId
+    //     ref: 'Course'
+    // },
     upvotes: {
         type: Number,
         default: 0

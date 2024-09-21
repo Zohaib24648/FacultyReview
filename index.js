@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(loggingMiddleware);
 
 // Connect to MongoDB
-mongoose.connect('mongodb+srv://Zohaib24648:Zohaib24648@userlogins.94nzbbm.mongodb.net/')
+mongoose.connect('mongodb+srv://Zohaib24648:Zohaib24648@userlogins.94nzbbm.mongodb.net/AcademiQ')
     .then(() => {
         console.log('Connected to the Database');
         app.listen(port, () => console.log(`Server is running on port ${port}`));

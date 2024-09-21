@@ -25,8 +25,8 @@ router.post("/register", async (req, res) => {
     }
     
     // Validate role format
-    if (!['Admin', 'User'].includes(role)) {
-      return res.status(400).json({ msg: "Invalid role specified. Role must be either 'Admin' or 'User'." });
+    if (!['admin', 'user'].includes(role)) {
+      return res.status(400).json({ msg: "Invalid role specified. Role must be either 'admin' or 'user'." });
     }
 
     email = email.toLowerCase();  
@@ -44,19 +44,19 @@ router.post("/register", async (req, res) => {
     }
 
     // Validate password strength
-    if (!Validator.passwordValidator.validator(password)) {
-      return res.status(400).json({ 
-        msg: "Password must be at least 8 characters long, contain at least one uppercase letter, and one number."
-      });
-    }
+    // if (!Validator.passwordValidator.validator(password)) {
+    //   return res.status(400).json({ 
+    //     msg: "Password must be at least 8 characters long, contain at least one uppercase letter, and one number."
+    //   });
+    // }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Set roles based on the selected role
     let roles = [role];
-    if (role === 'Admin') {
-      roles.push('User'); // Admins should also have the 'User' role
+    if (role === 'admin') {
+      roles.push('user'); // Admins should also have the 'User' role
     }
 
     // Create the user
@@ -115,7 +115,7 @@ router.post("/login", async (req, res) => {
       }
 
       // Check if the user is authorized for the selected role
-      if (role === 'Admin' && !user.roles.includes('Admin')) {
+      if (role === 'admin' && !user.roles.includes('admin')) {
           return res.status(403).json({ msg: "You do not have Admin privileges." });
       }
 
@@ -167,7 +167,7 @@ router.post("/login", async (req, res) => {
     }
   });
   
-  router.patch('/changepassword',authenticateToken, requireRole("User"), async (req, res) => {
+  router.patch('/changepassword',authenticateToken, requireRole("user"), async (req, res) => {
     try {
       const {oldpassword, newpassword } = req.body;
       const{erp}=req.user;
@@ -199,11 +199,11 @@ router.post("/login", async (req, res) => {
       // Check that the old password matches
       const passwordCheck = await bcrypt.compare(oldpassword, user.password);
       if (!passwordCheck) {
-        return res.status(401).json({ msg: "Incorrect Password" }); // Unauthorized for wrong credentials
+        return res.status(401).json({ msg: "Incorrect Password" }); 
       }
   
       // Hash the new password before saving
-      const hashedNewPassword = await bcrypt.hash(newpassword, 10); // Assuming a salt round of 10, adjust as needed
+      const hashedNewPassword = await bcrypt.hash(newpassword, 10); 
       user.password = hashedNewPassword;
       await user.save();
   
@@ -292,7 +292,8 @@ router.get('/getuserprofile',authenticateToken, requireRole("User"),async(req,re
   });
 
 
-  
+// Operations for user related to comments
+
 router.post('/saveComment',authenticateToken, async (req, res) => {
     const { commentId } = req.body;
     const erp = req.user.erp;
@@ -380,7 +381,7 @@ router.post('/saveComment',authenticateToken, async (req, res) => {
   
   
   router.get('/getSavedComments', authenticateToken, async (req, res) => {
-    const erp = req.user.erp; // Assuming req.user.erp is populated by your authentication middleware
+    const erp = req.user.erp; 
   
     try {
         // First, find the user to get their saved_comments
@@ -407,7 +408,7 @@ router.post('/saveComment',authenticateToken, async (req, res) => {
   // Route to upvote a comment
   router.post('/upvotecomment', authenticateToken, async (req, res) => {
     const { commentId } = req.body;
-    const userErp = req.user.erp; // Assuming you have middleware that sets req.user
+    const userErp = req.user.erp; 
   
     if (!commentId) {
         return res.status(400).send('Missing comment ID.');
@@ -487,152 +488,152 @@ router.post('/saveComment',authenticateToken, async (req, res) => {
   
   
   
-  router.post('/saveteacher', authenticateToken, async (req, res) => {
-    const { teacherId } = req.body;
-    const erp = req.user.erp;
+  // router.post('/saveteacher', authenticateToken, async (req, res) => {
+  //   const { teacherId } = req.body;
+  //   const erp = req.user.erp;
   
-    if (!teacherId) {
-        return res.status(400).send('Invalid or missing teacher ID.');
-    }
+  //   if (!teacherId) {
+  //       return res.status(400).send('Invalid or missing teacher ID.');
+  //   }
   
-    try {
-        const user = await User.findOneAndUpdate(
-            { erp: erp },
-            { $addToSet: { saved_teachers: teacherId } },
-            { new: true }
-        );
+  //   try {
+  //       const user = await User.findOneAndUpdate(
+  //           { erp: erp },
+  //           { $addToSet: { saved_teachers: teacherId } },
+  //           { new: true }
+  //       );
   
-        if (!user) {
-            return res.status(404).send('User not found');
-        }
+  //       if (!user) {
+  //           return res.status(404).send('User not found');
+  //       }
   
-        res.status(200).json(user);
-    } catch (error) {
-        console.error('Error saving teacher:', error);
-        res.status(500).send('Server error');
-    }
-  });
-  
-  
-  router.post('/removesavedteacher', authenticateToken, async (req, res) => {
-    const { teacherId } = req.body;
-    const erp = req.user.erp;
-  
-    if (!teacherId) {
-        return res.status(400).send('Invalid or missing teacher ID.');
-    }
-  
-    try {
-        const user = await User.findOneAndUpdate(
-            { erp: erp },
-            { $pull: { saved_teachers: teacherId } },
-            { new: true }
-        );
-  
-        if (!user) {
-            return res.status(404).send('User not found');
-        }
-  
-        res.status(200).json(user);
-    } catch (error) {
-        console.error('Error removing saved teacher:', error);
-        res.status(500).send('Server error');
-    }
-  });
+  //       res.status(200).json(user);
+  //   } catch (error) {
+  //       console.error('Error saving teacher:', error);
+  //       res.status(500).send('Server error');
+  //   }
+  // });
   
   
-  router.get('/getSavedTeachers', authenticateToken, async (req, res) => {
-    const erp = req.user.erp;
+  // router.post('/removesavedteacher', authenticateToken, async (req, res) => {
+  //   const { teacherId } = req.body;
+  //   const erp = req.user.erp;
   
-    try {
-        const user = await User.findOne({ erp: erp });
-        if (!user || !user.saved_teachers.length) {
-            return res.status(404).send('No saved teachers found.');
-        }
+  //   if (!teacherId) {
+  //       return res.status(400).send('Invalid or missing teacher ID.');
+  //   }
   
-        // Assuming you have a Teacher model set up
-        const savedTeachers = await Teachers.find({
-            '_id': { $in: user.saved_teachers }
-        });
+  //   try {
+  //       const user = await User.findOneAndUpdate(
+  //           { erp: erp },
+  //           { $pull: { saved_teachers: teacherId } },
+  //           { new: true }
+  //       );
   
-        res.status(200).json(savedTeachers);
-    } catch (error) {
-        console.error('Error fetching saved teachers:', error);
-        res.status(500).send('Server error');
-    }
-  });
+  //       if (!user) {
+  //           return res.status(404).send('User not found');
+  //       }
   
-  
-  router.post('/savecourse', authenticateToken, async (req, res) => {
-    const { courseId } = req.body;
-    const erp = req.user.erp;
-  
-    if (!courseId) {
-      return res.status(400).send('Missing course ID.');
-    }
-  
-    try {
-      const user = await User.findOneAndUpdate(
-        { erp: erp },
-        { $addToSet: { saved_courses: courseId } },
-        { new: true }
-      );
-  
-      if (!user) {
-        return res.status(404).send('User not found');
-      }
-  
-      res.status(200).json(user);
-    } catch (error) {
-      console.error('Error saving course:', error);
-      res.status(500).send('Server error');
-    }
-  });
-  
-  router.post('/removesavedcourse', authenticateToken, async (req, res) => {
-    const { courseId } = req.body;
-    const erp = req.user.erp;
-  
-    if (!courseId) {
-      return res.status(400).send('Missing course ID.');
-    }
-  
-    try {
-      const user = await User.findOneAndUpdate(
-        { erp: erp },
-        { $pull: { saved_courses: courseId } },
-        { new: true }
-      );
-  
-      if (!user) {
-        return res.status(404).send('User not found');
-      }
-  
-      res.status(200).json(user);
-    } catch (error) {
-      console.error('Error removing course:', error);
-      res.status(500).send('Server error');
-    }
-  });
+  //       res.status(200).json(user);
+  //   } catch (error) {
+  //       console.error('Error removing saved teacher:', error);
+  //       res.status(500).send('Server error');
+  //   }
+  // });
   
   
-  router.get('/getsavedcourses', authenticateToken, async (req, res) => {
-    const erp = req.user.erp;
+  // router.get('/getSavedTeachers', authenticateToken, async (req, res) => {
+  //   const erp = req.user.erp;
   
-    try {
-      const user = await User.findOne({ erp: erp });
-      if (!user || !user.saved_courses.length) {
-        return res.status(404).send('No saved courses found.');
-      }
+  //   try {
+  //       const user = await User.findOne({ erp: erp });
+  //       if (!user || !user.saved_teachers.length) {
+  //           return res.status(404).send('No saved teachers found.');
+  //       }
   
-      const savedCourses = await Courses.find({ '_id': { $in: user.saved_courses } });
+  //       // Assuming you have a Teacher model set up
+  //       const savedTeachers = await Teachers.find({
+  //           '_id': { $in: user.saved_teachers }
+  //       });
   
-      res.status(200).json(savedCourses);
-    } catch (error) {
-      console.error('Error fetching saved courses:', error);
-      res.status(500).send('Server error');
-    }
-  });
+  //       res.status(200).json(savedTeachers);
+  //   } catch (error) {
+  //       console.error('Error fetching saved teachers:', error);
+  //       res.status(500).send('Server error');
+  //   }
+  // });
+  
+  
+  // router.post('/savecourse', authenticateToken, async (req, res) => {
+  //   const { courseId } = req.body;
+  //   const erp = req.user.erp;
+  
+  //   if (!courseId) {
+  //     return res.status(400).send('Missing course ID.');
+  //   }
+  
+  //   try {
+  //     const user = await User.findOneAndUpdate(
+  //       { erp: erp },
+  //       { $addToSet: { saved_courses: courseId } },
+  //       { new: true }
+  //     );
+  
+  //     if (!user) {
+  //       return res.status(404).send('User not found');
+  //     }
+  
+  //     res.status(200).json(user);
+  //   } catch (error) {
+  //     console.error('Error saving course:', error);
+  //     res.status(500).send('Server error');
+  //   }
+  // });
+  
+  // router.post('/removesavedcourse', authenticateToken, async (req, res) => {
+  //   const { courseId } = req.body;
+  //   const erp = req.user.erp;
+  
+  //   if (!courseId) {
+  //     return res.status(400).send('Missing course ID.');
+  //   }
+  
+  //   try {
+  //     const user = await User.findOneAndUpdate(
+  //       { erp: erp },
+  //       { $pull: { saved_courses: courseId } },
+  //       { new: true }
+  //     );
+  
+  //     if (!user) {
+  //       return res.status(404).send('User not found');
+  //     }
+  
+  //     res.status(200).json(user);
+  //   } catch (error) {
+  //     console.error('Error removing course:', error);
+  //     res.status(500).send('Server error');
+  //   }
+  // });
+  
+  
+  // router.get('/getsavedcourses', authenticateToken, async (req, res) => {
+  //   const erp = req.user.erp;
+  
+  //   try {
+  //     const user = await User.findOne({ erp: erp });
+  //     if (!user || !user.saved_courses.length) {
+  //       return res.status(404).send('No saved courses found.');
+  //     }
+  
+  //     const savedCourses = await Courses.find({ '_id': { $in: user.saved_courses } });
+  
+  //     res.status(200).json(savedCourses);
+  //   } catch (error) {
+  //     console.error('Error fetching saved courses:', error);
+  //     res.status(500).send('Server error');
+  //   }
+  // });
   
   
 module.exports = router;
